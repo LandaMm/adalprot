@@ -1,10 +1,10 @@
 
 #include<iostream>
-#include"adalprot.h"
+#include"hsp.h"
 
 int main()
 {
-    std::cout << AdaHello() << std::endl;
+    std::cout << HspHello("Amir") << std::endl;
     return 0;
 }
 
