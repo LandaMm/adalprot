@@ -6,7 +6,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_subdirectory(hsp)
 
-set(SOURCE_FILES src/main.cpp)
+set(SOURCE_FILES main.cpp)
 
 add_executable(hsp-test ${SOURCE_FILES})
 
