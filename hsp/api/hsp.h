@@ -9,12 +9,14 @@ namespace HSP
     class Address
     {
     private:
-        sockaddr_in m_addr;
+        sockaddr* m_addr;
     public:
-        Address(sockaddr_in addr);
-        Address();
+        Address(sockaddr* addr);
     public:
         char* ToString();
+    public:
+        inline sockaddr* GetAddr() const { return m_addr; }
+        inline socklen_t GetAddrLen() const;
     };
 
     class Connection
@@ -29,7 +31,7 @@ namespace HSP
         void Shutdown(int how);
     public:
         int Recv(void* buf, size_t n, int flags = 0);
-        void Send(void* buf, size_t n, int flags = 0);
+        int Send(void* buf, size_t n, int flags = 0);
     public:
         inline Address GetAddress() const { return m_addr; }
     };
@@ -37,10 +39,10 @@ namespace HSP
     class Server
     {
     private:
-        sockaddr *m_addr;
+        Address m_addr;
         int m_server;
     public:
-        Server(sockaddr* hints);
+        Server(const char* host, const char* port, const addrinfo* hints);
     public:
         void Bind();
         void Listen(int n);
@@ -48,6 +50,8 @@ namespace HSP
     public:
         void Close();
         void Shutdown(int how);
+    public:
+        inline Address GetAddr() const { return m_addr; }
     };
 }
 
