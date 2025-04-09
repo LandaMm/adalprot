@@ -1,18 +1,24 @@
 
 cmake_minimum_required(VERSION 3.13)
-project(hsp-test)
+project(hsp-server)
+project(hsp-client)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_subdirectory(hsp)
 
-set(SOURCE_FILES main.cpp)
+add_executable(hsp-server main.cpp)
+add_executable(hsp-client client.cpp)
 
-add_executable(hsp-test ${SOURCE_FILES})
-
-target_include_directories(hsp-test
+target_include_directories(hsp-server
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(hsp-test PRIVATE hsp)
+target_link_libraries(hsp-server PRIVATE hsp)
+
+target_include_directories(hsp-client
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(hsp-client PRIVATE hsp)
 

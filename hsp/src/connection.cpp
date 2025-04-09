@@ -4,7 +4,7 @@
 #include<errno.h>
 #include<iostream>
 #include<unistd.h>
-#include"hsp.h"
+#include"hsp/connection.h"
 
 namespace HSP
 {

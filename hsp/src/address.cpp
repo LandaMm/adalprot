@@ -2,7 +2,7 @@
 #include<iostream>
 #include<arpa/inet.h>
 #include<cstring>
-#include"hsp.h"
+#include"hsp/address.h"
 
 namespace HSP
 {
@@ -32,7 +32,7 @@ namespace HSP
         return 0;
     }
 
-    char* Address::ToString()
+    char* Address::ToString() const
     {
         char* p = (char*)malloc(sizeof(char) * INET6_ADDRSTRLEN);
         if (!inet_ntop(m_addr->sa_family, &m_addr, p, INET6_ADDRSTRLEN))

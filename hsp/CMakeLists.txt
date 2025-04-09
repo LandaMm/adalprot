@@ -10,6 +10,7 @@ set(SOURCE_FILES
     src/address.cpp
     src/connection.cpp
     src/server.cpp
+    src/client.cpp
 )
 
 add_library(hsp SHARED ${SOURCE_FILES})
