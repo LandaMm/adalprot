@@ -6,7 +6,11 @@ set(HSP_DESCRIPTION "home server protocol description")
 project(hsp VERSION ${HSP_VERSION} DESCRIPTION ${HSP_DESCRIPTION})
 set(CMAKE_CXX_STANDARD 17)
 
-set(SOURCE_FILES src/main.cpp)
+set(SOURCE_FILES 
+    src/address.cpp
+    src/connection.cpp
+    src/server.cpp
+)
 
 add_library(hsp SHARED ${SOURCE_FILES})
 target_include_directories(hsp

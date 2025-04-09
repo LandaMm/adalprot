@@ -1,8 +1,6 @@
 #pragma once
 
-#include<netdb.h>
-#include<sys/socket.h>
-#include<sys/types.h>
+#include <netdb.h>
 
 namespace HSP
 {
@@ -16,7 +14,7 @@ namespace HSP
         char* ToString();
     public:
         inline sockaddr* GetAddr() const { return m_addr; }
-        inline socklen_t GetAddrLen() const;
+        socklen_t GetAddrLen() const;
     };
 
     class Connection
