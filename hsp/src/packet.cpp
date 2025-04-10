@@ -7,13 +7,27 @@ constexpr uint32_t MAGIC_BYTES = 0xDEADBEEF;
 
 namespace HSP
 {
+    Packet* Packet::FromResponse(const Response* response)
+    {
+        Packet* packet = new Packet();
+        packet->version = PACKET_VERSION;
+        packet->flags = 0; // TODO: Support flags depending on response
+        
+        for (auto &[k, v] : response->GetHeaders())
+        {
+            packet->headers.insert(std::make_pair(k, v));
+        }
+
+        packet->payload.insert(packet->payload.begin(), (uint8_t*)response->RawData(), (uint8_t*)response->RawData() + response->PayloadSize());
+
+        return packet;
+    }
+
     void Packet::Serialize(std::vector<uint8_t> &buffer)
     {
         uint32_t magic = htonl(MAGIC_BYTES);
         buffer.insert(buffer.end(), (uint8_t*)&magic, (uint8_t*)&magic + 4);
 
-        std::cout << "DEBUG: Packet version: " << (int)version << std::endl;
-        std::cout << "DEBUG: Packet flags: " << (int)flags << std::endl;
         buffer.push_back(version);
         buffer.push_back(flags);
 
@@ -23,12 +37,10 @@ namespace HSP
             headersEncoded += k + ":" + v + '\n';
         }
         headersEncoded.push_back('\n');
-        std::cout << "DEBUG: Headers (encoded) (" << headersEncoded.size() << "): '" << headersEncoded << "'\n";
 
         uint16_t hLen = htons(headersEncoded.size());
         buffer.insert(buffer.end(), (uint8_t*)&hLen, (uint8_t*)&hLen + 2);
 
-        std::cout << "DEBUG: Payload Length: " << payload.size() << std::endl;
         uint32_t pLen = htonl(payload.size());
         buffer.insert(buffer.end(), (uint8_t*)&pLen, (uint8_t*)&pLen + 4);
 

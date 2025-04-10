@@ -1,10 +1,14 @@
 
 #pragma once
 
+#include "hsp/response.h"
 #include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+#define PACKET_VERSION 1
+#define PACKET_MAX_SUPPORTED_VERSION 1
 
 namespace HSP
 {
@@ -17,6 +21,8 @@ namespace HSP
         std::vector<uint8_t> payload;
     public:
         void Serialize(std::vector<uint8_t> &buffer);
+    public:
+        static Packet* FromResponse(const Response* response);
     };
 }
 
