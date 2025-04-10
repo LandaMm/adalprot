@@ -37,8 +37,6 @@ namespace HSP
     {
         Packet* packet = new Packet();
 
-        std::cout << "DEBUG: Started building packet out of buffer (" << m_buf.size() << ")\n";
-
         if (m_buf.size() < 12)
         {
             std::cerr << "ERROR: Packet is too small" << std::endl;
@@ -48,9 +46,6 @@ namespace HSP
         unsigned int offset = 0;
 
         uint32_t magic = ReadUint32(offset);
-
-        std::cout << "DEBUG: Magic from packet: " << magic << std::endl;
-        std::cout << "DEBUG: Magic expected: " << MAGIC_BYTES << std::endl;
 
         if (magic != MAGIC_BYTES)
         {
@@ -63,11 +58,6 @@ namespace HSP
         uint16_t headerLen = ReadUint16(offset);
         uint16_t payloadLen = ReadUint32(offset);
 
-        std::cout << "DEBUG: Packet Version: " << packet->version << std::endl;
-        std::cout << "DEBUG: Packet Flags: " << packet->flags << std::endl;
-        std::cout << "DEBUG: Header Length: " << headerLen << std::endl;
-        std::cout << "DEBUG: Payload Length: " << payloadLen << std::endl;
-
         if (m_buf.size() < offset + headerLen + payloadLen)
         {
             std::cerr << "ERROR: Incomplete packet" << std::endl;
@@ -78,11 +68,6 @@ namespace HSP
         offset += headerLen;
 
         packet->headers = ParseHeaders(headerBlock);
-
-        std::cout << "INFO: Headers:" << std::endl;
-        std::cout << headerBlock << std::endl;
-        std::cout << "HEADER_END" << std::endl;
-
         packet->payload.insert(packet->payload.end(), m_buf.begin() + offset, m_buf.begin() + offset + payloadLen);
         
         return packet;
