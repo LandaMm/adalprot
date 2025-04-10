@@ -2,8 +2,12 @@
 #include<errno.h>
 #include<iostream>
 #include<cstring>
+#include <sys/socket.h>
 #include<unistd.h>
 #include"hsp/server.h"
+#include "hsp/connection.h"
+#include "hsp/reader.h"
+#include "hsp/request.h"
 
 namespace HSP
 {
@@ -18,6 +22,60 @@ namespace HSP
         }
         m_server = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
         m_addr = Address(res->ai_addr);
+    }
+
+    void Server::Stop()
+    {
+        Close();
+        Shutdown(SHUT_RDWR);
+    }
+
+    void Server::Start(Server::Listener listener)
+    {
+        m_listener = listener;
+
+        Bind();
+        Listen(SERVER_BACKLOG);
+
+        while(true)
+        {
+            Connection conn = Accept();
+            HSP::Reader reader = HSP::Reader(SERVER_RECV_BUFFER_SIZE);
+            auto buffer = reader.NewBuffer();
+
+            int bytes_read = conn.Recv(buffer, SERVER_RECV_BUFFER_SIZE);
+
+            if (bytes_read < 0) 
+            {
+                std::cerr << "[SERVER] ERROR: Failed to read data from connection: "
+                    << conn.GetAddress().ToString() << std::endl;
+            }
+            else
+            {
+                reader.ReadBuffer(buffer, bytes_read);
+                reader.FreeBuffer(buffer);
+                
+                Packet* packet = reader.ReadPacket();
+                if (!packet)
+                {
+                    std::cerr << "[SERVER] ERROR: Failed to read packet from connection: "
+                        << conn.GetAddress().ToString() << std::endl;
+                }
+                else
+                {
+                    Request* req = new Request(packet, &conn);
+                    Response* res = m_listener(req);
+                    Packet* resPacket = Packet::FromResponse(res);
+                    
+                    std::vector<uint8_t> resBuffer;
+                    resPacket->Serialize(resBuffer);
+                    conn.Send(resBuffer.data(), resBuffer.size());
+                }
+            }
+
+            conn.Close();
+            conn.Shutdown(SHUT_RDWR);
+        }
     }
 
     void Server::Bind()
