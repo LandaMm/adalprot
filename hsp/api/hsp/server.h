@@ -23,18 +23,22 @@ namespace HSP
         Listener m_listener;
     public:
         Server(const char* host, const char* port, const addrinfo* hints);
+    public:
+        static Response* DefaultListener(Request* req);
     private:
         void Bind();
         void Listen(int n);
         Connection Accept();
+        void HandleConnection(Connection conn);
     private:
         void Close();
         void Shutdown(int how);
     public:
         inline Address GetAddr() const { return m_addr; }
     public:
+        inline void SetListener(Listener listener) { m_listener = listener; };
         void Stop();
-        void Start(Listener listener);
+        void Start();
     };
 }
 

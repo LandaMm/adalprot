@@ -3,6 +3,7 @@
 #include<iostream>
 #include<cstring>
 #include <sys/socket.h>
+#include <thread>
 #include<unistd.h>
 #include"hsp/server.h"
 #include "hsp/connection.h"
@@ -24,57 +25,65 @@ namespace HSP
         m_addr = Address(res->ai_addr);
     }
 
+    Response* Server::DefaultListener(Request* req)
+    {
+        return new Response;
+    }
+
     void Server::Stop()
     {
         Close();
         Shutdown(SHUT_RDWR);
     }
 
-    void Server::Start(Server::Listener listener)
+    void Server::HandleConnection(Connection conn)
     {
-        m_listener = listener;
+        HSP::Reader reader = HSP::Reader(SERVER_RECV_BUFFER_SIZE);
+        auto buffer = reader.NewBuffer();
 
+        int bytes_read = conn.Recv(buffer, SERVER_RECV_BUFFER_SIZE);
+
+        if (bytes_read < 0) 
+        {
+            std::cerr << "[SERVER] ERROR: Failed to read data from connection: "
+                << conn.GetAddress().ToString() << std::endl;
+        }
+        else
+        {
+            reader.ReadBuffer(buffer, bytes_read);
+            reader.FreeBuffer(buffer);
+
+            Packet* packet = reader.ReadPacket();
+            if (!packet)
+            {
+                std::cerr << "[SERVER] ERROR: Failed to read packet from connection: "
+                    << conn.GetAddress().ToString() << std::endl;
+            }
+            else
+            {
+                Request* req = new Request(packet, &conn);
+                Response* res = m_listener(req);
+                Packet* resPacket = Packet::FromResponse(res);
+
+                std::vector<uint8_t> resBuffer;
+                resPacket->Serialize(resBuffer);
+                conn.Send(resBuffer.data(), resBuffer.size());
+            }
+        }
+
+        conn.Close();
+        conn.Shutdown(SHUT_RDWR);
+    }
+
+    void Server::Start()
+    {
         Bind();
         Listen(SERVER_BACKLOG);
 
         while(true)
         {
             Connection conn = Accept();
-            HSP::Reader reader = HSP::Reader(SERVER_RECV_BUFFER_SIZE);
-            auto buffer = reader.NewBuffer();
-
-            int bytes_read = conn.Recv(buffer, SERVER_RECV_BUFFER_SIZE);
-
-            if (bytes_read < 0) 
-            {
-                std::cerr << "[SERVER] ERROR: Failed to read data from connection: "
-                    << conn.GetAddress().ToString() << std::endl;
-            }
-            else
-            {
-                reader.ReadBuffer(buffer, bytes_read);
-                reader.FreeBuffer(buffer);
-                
-                Packet* packet = reader.ReadPacket();
-                if (!packet)
-                {
-                    std::cerr << "[SERVER] ERROR: Failed to read packet from connection: "
-                        << conn.GetAddress().ToString() << std::endl;
-                }
-                else
-                {
-                    Request* req = new Request(packet, &conn);
-                    Response* res = m_listener(req);
-                    Packet* resPacket = Packet::FromResponse(res);
-                    
-                    std::vector<uint8_t> resBuffer;
-                    resPacket->Serialize(resBuffer);
-                    conn.Send(resBuffer.data(), resBuffer.size());
-                }
-            }
-
-            conn.Close();
-            conn.Shutdown(SHUT_RDWR);
+            std::thread connThread([this, conn]() { this->HandleConnection(conn); });
         }
     }
 

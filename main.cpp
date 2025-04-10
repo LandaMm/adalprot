@@ -4,18 +4,15 @@
 #include<netdb.h>
 #include<sys/socket.h>
 
-#include "hsp/request.h"
-#include "hsp/response.h"
+#include"hsp/request.h"
+#include"hsp/response.h"
+#include "hsp/router.h"
 #include"hsp/server.h"
 
-HSP::Response* OnRequest(HSP::Request* req)
+HSP::Response* PongRoute(HSP::Request* req)
 {
-    std::cout << "[MAIN] New Request from '" << req->GetConnection()->GetAddress().ToString() << "'" << std::endl;
-    std::string route = req->GetHeader("Route");
-    if (!route.empty())
-    {
-        std::cout << "[MAIN] Route '" << route << "'\n";
-    }
+    std::cout << "[MAIN] New Pong from '" << req->GetConnection()->GetAddress().ToString() << "'" << std::endl;
+
     std::vector<uint8_t> data;
     req->ReadPayload(data);
     std::cout << "[MAIN] Received payload with size " << data.size() << std::endl;
@@ -25,6 +22,7 @@ HSP::Response* OnRequest(HSP::Request* req)
 
     HSP::Response *res = new HSP::Response();
     res->AddHeader(std::pair("Content-Encoding", "utf-8"));
+    res->AddHeader(std::pair("Ping", "pong"));
     res->InsertData(data.begin(), data.end());
 
     return res;
@@ -43,7 +41,11 @@ int main()
 
     std::cout << "Listening on " << server.GetAddr().ToString() << ":4445" << std::endl;
 
-    server.Start(OnRequest);
+    HSP::Router router = HSP::Router(&server);
+
+    router.AddRoute("/pong", PongRoute);
+
+    server.Start();
 
     server.Stop();
 
