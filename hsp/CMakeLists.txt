@@ -13,6 +13,7 @@ set(SOURCE_FILES
     src/client.cpp
     src/reader.cpp
     src/packet.cpp
+    src/request.cpp
 )
 
 add_library(hsp SHARED ${SOURCE_FILES})
