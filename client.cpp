@@ -1,17 +1,17 @@
 
 #include"hsp/client.h"
 #include"hsp/packet.h"
-#include "hsp/reader.h"
-#include <cassert>
-#include <cerrno>
-#include <cstdlib>
-#include <cstring>
-#include <fstream>
-#include <ios>
-#include <iostream>
-#include <netdb.h>
-#include <sys/socket.h>
-#include <utility>
+#include"hsp/reader.h"
+#include<cassert>
+#include<cerrno>
+#include<cstdlib>
+#include<cstring>
+#include<fstream>
+#include<ios>
+#include<iostream>
+#include<netdb.h>
+#include<sys/socket.h>
+#include<utility>
 
 using namespace HSP;
 
@@ -41,6 +41,7 @@ int main(int argc, char** argv)
     packet->flags = 0;
     packet->headers.insert(std::make_pair("x-protocol", "stream"));
     packet->headers.insert(std::make_pair("Content-Encoding", "utf-8"));
+    packet->headers.insert(std::make_pair("Route", "/pong"));
     std::ifstream licenseFile("LICENSE", std::ios::in | std::ios::binary);
     if (!licenseFile)
     {
