@@ -1,7 +1,9 @@
 
 #pragma once
+#include <atomic>
 #include <functional>
 #include<netdb.h>
+#include <thread>
 
 #include "hsp/address.h"
 #include "hsp/connection.h"
@@ -21,6 +23,8 @@ namespace HSP
         Address m_addr;
         int m_server;
         Listener m_listener;
+        std::vector<std::thread> m_handlers;
+        std::atomic<bool> m_running = std::atomic<bool>(false);
     public:
         Server(const char* host, const char* port, const addrinfo* hints);
     public:
@@ -28,7 +32,7 @@ namespace HSP
     private:
         void Bind();
         void Listen(int n);
-        Connection Accept();
+        Connection *Accept();
         void HandleConnection(Connection conn);
     private:
         void Close();
