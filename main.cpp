@@ -6,6 +6,7 @@
 #include<netdb.h>
 #include<sys/socket.h>
 
+#include "hsp/address.h"
 #include"hsp/request.h"
 #include"hsp/response.h"
 #include "hsp/router.h"
@@ -80,7 +81,7 @@ int main()
     hints.ai_flags = AI_PASSIVE;
     hints.ai_socktype = SOCK_STREAM;
 
-    server = new HSP::Server("localhost", "4445", &hints);
+    server = new HSP::Server(HSP::Address::FromString("127.0.0.1", AF_INET));
 
     std::cout << "Listening on " << server->GetAddr().ToString() << ":4445" << std::endl;
 
