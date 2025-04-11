@@ -14,22 +14,15 @@
 
 namespace HSP
 {
-    Server::Server(const char* host, const char* port, const addrinfo* hints) : m_addr(nullptr)
+    Server::Server(Address addr) : m_addr(addr)
     {
-        addrinfo *res;
-        if (getaddrinfo(host, port, hints, &res) == -1)
-        {
-            int errnum = errno;
-            std::cerr << "ERROR: Failed to get addrinfo for server: " << strerror(errnum) << std::endl;
-            exit(EXIT_FAILURE);
-        }
-        m_server = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+        std::cout << "[SERVER] DEBUG: Addr family is " << addr.GetAddr()->sa_family
+            << std::endl;
+        m_server = socket(addr.GetAddr()->sa_family, SOCK_STREAM | SOCK_NONBLOCK, 0);
 
         // Non blocking
-        int flags = fcntl(m_server, F_SETFL, 0);
-        fcntl(m_server, F_SETFL, flags | O_NONBLOCK);
-
-        m_addr = Address(res->ai_addr);
+        // int flags = fcntl(m_server, F_SETFL, 0);
+        // fcntl(m_server, F_SETFL, flags | O_NONBLOCK);
     }
 
     Response* Server::DefaultListener(Request* req)

@@ -1,11 +1,13 @@
 
 #include"hsp/router.h"
+#include <iostream>
 
 namespace HSP
 {
     Response* Router::Listener(Request* req)
     {
         std::string route = req->GetHeader("Route");
+        std::cout<<"[ROUTER] Got new request to '" << route << "'\n";
         if (!route.empty())
         {
             if (m_routes.find(route) != m_routes.end())

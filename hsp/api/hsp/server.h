@@ -26,7 +26,7 @@ namespace HSP
         std::vector<std::thread> m_handlers;
         std::atomic<bool> m_running = std::atomic<bool>(false);
     public:
-        Server(const char* host, const char* port, const addrinfo* hints);
+        Server(Address addr);
     public:
         static Response* DefaultListener(Request* req);
     private:
