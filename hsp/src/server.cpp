@@ -1,14 +1,16 @@
 
+#include <cerrno>
 #include<errno.h>
 #include<iostream>
 #include<cstring>
-#include <sys/socket.h>
-#include <thread>
+#include<sys/socket.h>
+#include<fcntl.h>
+#include<thread>
 #include<unistd.h>
 #include"hsp/server.h"
-#include "hsp/connection.h"
-#include "hsp/reader.h"
-#include "hsp/request.h"
+#include"hsp/connection.h"
+#include"hsp/reader.h"
+#include"hsp/request.h"
 
 namespace HSP
 {
@@ -22,6 +24,11 @@ namespace HSP
             exit(EXIT_FAILURE);
         }
         m_server = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+
+        // Non blocking
+        int flags = fcntl(m_server, F_SETFL, 0);
+        fcntl(m_server, F_SETFL, flags | O_NONBLOCK);
+
         m_addr = Address(res->ai_addr);
     }
 
@@ -32,8 +39,13 @@ namespace HSP
 
     void Server::Stop()
     {
-        Close();
-        Shutdown(SHUT_RDWR);
+        std::cout << "[SERVER] Gracefully shutting down" << std::endl;
+        for (auto&t : m_handlers)
+        {
+            if (t.joinable()) t.join();
+        }
+
+        m_running = false;
     }
 
     void Server::HandleConnection(Connection conn)
@@ -80,11 +92,22 @@ namespace HSP
         Bind();
         Listen(SERVER_BACKLOG);
 
-        while(true)
+        m_running = true;
+
+        while(m_running)
         {
-            Connection conn = Accept();
-            std::thread connThread([this, conn]() { this->HandleConnection(conn); });
+            Connection *conn = Accept();
+            if (conn)
+            {
+                std::cout << "[SERVER] New connection from '"
+                    << conn->GetAddress().ToString()
+                    << std::endl;
+                m_handlers.emplace_back([this, conn]() { this->HandleConnection(*conn); });
+            }            
         }
+
+        Close();
+        Shutdown(SHUT_RDWR);
     }
 
     void Server::Bind()
@@ -102,7 +125,7 @@ namespace HSP
         listen(m_server, n);
     }
 
-    Connection Server::Accept()
+    Connection *Server::Accept()
     {
         sockaddr_storage clientaddr;
         socklen_t addrlen = sizeof(clientaddr);
@@ -110,10 +133,14 @@ namespace HSP
         if (client == -1)
         {
             int errnum = errno;
+            if (errnum == EWOULDBLOCK || errno == EAGAIN)
+            {
+                return nullptr;
+            }
             std::cerr << "ERROR: Failed to accept connection: " << strerror(errnum) << std::endl;
             exit(EXIT_FAILURE);
         }
-        return Connection(client);
+        return new Connection(client);
     }
 
     void Server::Close()
