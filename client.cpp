@@ -4,6 +4,7 @@
 #include"hsp/reader.h"
 #include<cassert>
 #include<cerrno>
+#include <cstdint>
 #include<cstdlib>
 #include<cstring>
 #include<fstream>
@@ -39,21 +40,21 @@ int main(int argc, char** argv)
     Packet *packet = new Packet();
     packet->version = 1;
     packet->flags = 0;
-    packet->headers.insert(std::make_pair("x-protocol", "stream"));
     packet->headers.insert(std::make_pair("Content-Encoding", "utf-8"));
-    packet->headers.insert(std::make_pair("Route", "/pong"));
-    std::ifstream licenseFile("LICENSE", std::ios::in | std::ios::binary);
-    if (!licenseFile)
+    packet->headers.insert(std::make_pair("Filename", argv[1]));
+    packet->headers.insert(std::make_pair("Route", "/file-upload"));
+    std::ifstream file(argv[1], std::ios::in | std::ios::binary);
+    if (!file)
     {
-        std::cerr << "ERROR: Failed to open 'LICENSE' file" << std::endl;
+        std::cerr << "ERROR: Failed to open '" << argv[1] << "'" << std::endl;
         return 1;
     }
-    char data[501] = {0};
-    licenseFile.read(data, 500);
-    std::streamsize charsRead = licenseFile.gcount();
-    std::cout << "DEBUG: Read " << charsRead << " characters from LICENSE\n";
-    licenseFile.close();
-    packet->payload.insert(packet->payload.end(), data, data + strlen(data));
+    uint8_t data[900] = {0};
+    file.read(reinterpret_cast<char*>(data), 900);
+    std::streamsize bytesRead = file.gcount();
+    std::cout << "DEBUG: Read " << bytesRead << " characters from LICENSE\n";
+    file.close();
+    packet->payload.insert(packet->payload.end(), data, data + bytesRead);
 
     std::vector<uint8_t> buffer;
     packet->Serialize(buffer);
@@ -83,18 +84,6 @@ int main(int argc, char** argv)
             std::cout << "\t" << '"' << k << '"' << ": " << '"' << v << '"' << std::endl;
         }
         std::cout << "Payload Length:\t" << packet->payload.size() << std::endl;
-        if (packet->headers.find("Content-Encoding") != packet->headers.end())
-        {
-            std::string contentType = packet->headers.at("Content-Encoding");
-            if (contentType == "utf-8")
-            {
-                std::cout << "INFO: UTF-8 Encoded Payload:" << std::endl;
-                char* msg = reinterpret_cast<char*>(packet->payload.data());
-                std::string msgStr = msg;
-                assert(msgStr == data && "DATA LOSS");
-                std::cout << "'" << msg << "'" << std::endl;
-            }
-        }
     }
 
     client.Close();
