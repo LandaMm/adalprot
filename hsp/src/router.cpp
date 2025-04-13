@@ -1,12 +1,13 @@
 
 #include"hsp/router.h"
+#include "hsp/header.h"
 #include <iostream>
 
 namespace HSP
 {
     Response* Router::Listener(Request* req)
     {
-        std::string route = req->GetHeader("Route");
+        std::string route = req->GetHeader(H_ROUTE);
         std::cout<<"[ROUTER] Got new request to '" << route << "'\n";
         if (!route.empty())
         {
@@ -18,7 +19,7 @@ namespace HSP
         
         // Unknown Route
         Response* res = new Response;
-        res->AddHeader(std::make_pair("Status", "not-found"));
+        res->AddHeader(std::make_pair(H_STATUS, std::to_string(S_LOST)));
         return res;
     }
 
