@@ -1,5 +1,6 @@
 
 #include"hsp/request.h"
+#include <algorithm>
 
 namespace HSP
 {
@@ -11,9 +12,12 @@ namespace HSP
 
     std::string Request::GetHeader(std::string headerName) const
     {
-        if (m_packet->headers.find(headerName) != m_packet->headers.end())
+        std::string key = headerName;
+        std::transform(key.begin(), key.end(), key.begin(),
+                       [](unsigned char c) { return std::tolower(c); });
+        if (m_packet->headers.find(key) != m_packet->headers.end())
         {
-            return m_packet->headers.at(headerName);
+            return m_packet->headers.at(key);
         }
         return std::string("");
     }
