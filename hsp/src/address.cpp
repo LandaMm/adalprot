@@ -1,7 +1,9 @@
 
+#include <cstdio>
 #include<iostream>
 #include<arpa/inet.h>
 #include<cstring>
+#include <netinet/in.h>
 #include <sys/socket.h>
 #include"hsp/address.h"
 
@@ -107,21 +109,24 @@ namespace HSP
 
     char* Address::ToString() const
     {
-        char* p = new char(sizeof(char) * INET6_ADDRSTRLEN);
+        char* p = new char[INET6_ADDRSTRLEN + 1];
 
         void* addr;
+        int port;
         switch(m_addr->sa_family)
         {
             case AF_INET:
             {
                 sockaddr_in *addr4 = (sockaddr_in*)m_addr;
                 addr = &(addr4->sin_addr);
+                port = ntohs(addr4->sin_port);
                 break;
             }
             case AF_INET6:
             {
                 sockaddr_in6 *addr6 = (sockaddr_in6*)m_addr;
                 addr = &(addr6->sin6_addr);
+                port = ntohs(addr6->sin6_port);
                 break;
             }
             default:
@@ -139,7 +144,9 @@ namespace HSP
             exit(EXIT_FAILURE);
         }
 
-        return p;
+        char portStr[5];
+        sprintf(portStr, "%d", port);
+        return strcat(strcat(p, ":"), portStr);
     }
 }
 
