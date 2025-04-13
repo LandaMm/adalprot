@@ -74,16 +74,9 @@ void handle_signal(int signal)
 
 int main()
 {
-    addrinfo hints;
-    memset(&hints, 0, sizeof(hints));
+    server = new HSP::Server(HSP::Address::FromString("127.0.0.1:3000", AF_INET));
 
-    hints.ai_family = AF_INET;
-    hints.ai_flags = AI_PASSIVE;
-    hints.ai_socktype = SOCK_STREAM;
-
-    server = new HSP::Server(HSP::Address::FromString("127.0.0.1", AF_INET));
-
-    std::cout << "Listening on " << server->GetAddr().ToString() << ":4445" << std::endl;
+    std::cout << "Listening on " << server->GetAddr().ToString() << std::endl;
 
     HSP::Router router = HSP::Router(server);
 
