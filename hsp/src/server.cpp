@@ -32,7 +32,7 @@ namespace HSP
 
     void Server::Stop()
     {
-        std::cout << "[SERVER] Gracefully shutting down" << std::endl;
+        std::cout << "\n[SERVER] Gracefully shutting down" << std::endl;
         for (auto&t : m_handlers)
         {
             if (t.joinable()) t.join();
@@ -40,8 +40,8 @@ namespace HSP
 
         m_running = false;
     }
-
-    void Server::HandleConnection(Connection conn)
+    
+    Packet* Server::ReceivePacket(Connection& conn)
     {
         HSP::Reader reader = HSP::Reader(SERVER_RECV_BUFFER_SIZE);
         auto buffer = reader.NewBuffer();
@@ -52,28 +52,35 @@ namespace HSP
         {
             std::cerr << "[SERVER] ERROR: Failed to read data from connection: "
                 << conn.GetAddress().ToString() << std::endl;
+            return nullptr;
+        }
+
+        reader.ReadBuffer(buffer, bytes_read);
+        reader.FreeBuffer(buffer);
+
+        return reader.ReadPacket();
+    }
+
+    void Server::HandleConnection(Connection conn)
+    {
+        HSP::Reader reader = HSP::Reader(SERVER_RECV_BUFFER_SIZE);
+        auto buffer = reader.NewBuffer();
+
+        auto packet = ReceivePacket(conn);
+        if (!packet)
+        {
+            std::cerr << "[SERVER] ERROR: Failed to read packet from connection: "
+                << conn.GetAddress().ToString() << std::endl;
         }
         else
         {
-            reader.ReadBuffer(buffer, bytes_read);
-            reader.FreeBuffer(buffer);
+            Request* req = new Request(packet, &conn);
+            Response* res = m_listener(req);
+            Packet* resPacket = Packet::FromResponse(res);
 
-            Packet* packet = reader.ReadPacket();
-            if (!packet)
-            {
-                std::cerr << "[SERVER] ERROR: Failed to read packet from connection: "
-                    << conn.GetAddress().ToString() << std::endl;
-            }
-            else
-            {
-                Request* req = new Request(packet, &conn);
-                Response* res = m_listener(req);
-                Packet* resPacket = Packet::FromResponse(res);
-
-                std::vector<uint8_t> resBuffer;
-                resPacket->Serialize(resBuffer);
-                conn.Send(resBuffer.data(), resBuffer.size());
-            }
+            std::vector<uint8_t> resBuffer;
+            resPacket->Serialize(resBuffer);
+            conn.Send(resBuffer.data(), resBuffer.size());
         }
 
         conn.Close();
@@ -96,7 +103,7 @@ namespace HSP
                     << conn->GetAddress().ToString()
                     << std::endl;
                 m_handlers.emplace_back([this, conn]() { this->HandleConnection(*conn); });
-            }            
+            }       
         }
 
         Close();

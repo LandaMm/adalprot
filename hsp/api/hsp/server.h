@@ -35,6 +35,8 @@ namespace HSP
         Connection *Accept();
         void HandleConnection(Connection conn);
     private:
+        Packet* ReceivePacket(Connection& conn);
+    private:
         void Close();
         void Shutdown(int how);
     public:
