@@ -7,6 +7,7 @@
 #include<sys/socket.h>
 
 #include "hsp/address.h"
+#include "hsp/header.h"
 #include"hsp/request.h"
 #include"hsp/response.h"
 #include "hsp/router.h"
@@ -24,8 +25,7 @@ HSP::Response* PongRoute(HSP::Request* req)
     std::cout << "[MAIN] Payload: '" << msg << "'\n";
 
     HSP::Response *res = new HSP::Response();
-    res->AddHeader(std::pair("Content-Encoding", "utf-8"));
-    res->AddHeader(std::pair("Ping", "pong"));
+    res->AddHeader(std::pair(H_DATA_FORMAT, DF_TEXT));
     res->InsertData(data.begin(), data.end());
 
     return res;
@@ -56,8 +56,8 @@ HSP::Response* FileRoute(HSP::Request* req)
 
     HSP::Response* res = new HSP::Response;
     res->AddHeader(std::make_pair("Filename", fileName));
-    res->AddHeader(std::make_pair("Content-Encoding", "utf-8"));
-    char msg[] = "Hello, World!";
+    res->AddHeader(std::make_pair(H_DATA_FORMAT, DF_TEXT));
+    char msg[] = "File transmitted successfully!";
     res->InsertData((uint8_t*)msg, (uint8_t*)msg + strlen(msg));
     return res;
 }
