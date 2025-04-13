@@ -20,7 +20,7 @@ namespace HSP
         std::unordered_map<std::string, std::string> headers;
         std::vector<uint8_t> payload;
     public:
-        void Serialize(std::vector<uint8_t> &buffer);
+        void Serialize(std::vector<uint8_t> &buffer) const;
     public:
         static Packet* FromResponse(const Response* response);
     };

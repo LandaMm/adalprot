@@ -1,7 +1,8 @@
 
 #include"hsp/packet.h"
+#include <algorithm>
+#include <cctype>
 #include <netinet/in.h>
-#include<iostream>
 
 constexpr uint32_t MAGIC_BYTES = 0xDEADBEEF;
 
@@ -23,7 +24,7 @@ namespace HSP
         return packet;
     }
 
-    void Packet::Serialize(std::vector<uint8_t> &buffer)
+    void Packet::Serialize(std::vector<uint8_t> &buffer) const
     {
         uint32_t magic = htonl(MAGIC_BYTES);
         buffer.insert(buffer.end(), (uint8_t*)&magic, (uint8_t*)&magic + 4);
@@ -34,7 +35,10 @@ namespace HSP
         std::string headersEncoded;
         for (auto &[k, v] : headers)
         {
-            headersEncoded += k + ":" + v + '\n';
+            std::string key = k;
+            std::transform(key.begin(), key.end(), key.begin(),
+                           [](unsigned char c){ return std::tolower(c); });
+            headersEncoded += key + ":" + v + '\n';
         }
         headersEncoded.push_back('\n');
 
