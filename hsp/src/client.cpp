@@ -1,34 +1,34 @@
 
 #include"hsp/client.h"
 #include "hsp/address.h"
+#include "hsp/packet.h"
+#include "hsp/reader.h"
+#include "hsp/server.h"
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <vector>
 
 namespace HSP
 {
-    Client::Client(const addrinfo* addr) : m_addr(nullptr)
+    void Client::Connect(const Address& addr)
     {
-        m_socket = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
-        m_addr = Address(addr->ai_addr);
+        m_socket = socket(addr.GetAddr()->sa_family, SOCK_STREAM, 0);
         if (m_socket == -1)
         {
             int errnum = errno;
             std::cerr << "ERROR: Failed to get socket for client: "
                 << strerror(errnum) << std::endl;
         }
-    }
 
-    void Client::Connect()
-    {
-        if (connect(m_socket, m_addr.GetAddr(), m_addr.GetAddrLen()) == -1)
+        if (connect(m_socket, addr.GetAddr(), addr.GetAddrLen()) == -1)
         {
             m_connected = false;
             int errnum = errno;
-            std::cerr << "ERROR: Failed to connect to " << m_addr.ToString()
+            std::cerr << "ERROR: Failed to connect to " << addr.ToString()
                 << " : " << strerror(errnum) << std::endl;
             exit(EXIT_FAILURE);
         }
@@ -36,39 +36,45 @@ namespace HSP
         m_connected = true;
     }
 
-    int Client::Send(const void *buf, size_t n, int flags)
+    int Client::Send(const Packet* packet)
     {
-        int sent = send(m_socket, buf, n, flags);
+        std::vector<uint8_t> buf;
+        packet->Serialize(buf);
+
+        int sent = send(m_socket, buf.data(), buf.size(), 0);
         if (sent < 0)
         {
             int errnum = errno;
-            std::cerr << "ERROR: Failed to send " << n << " bytes: "
+            std::cerr << "ERROR: Failed to send " << buf.size() << " bytes: "
                 << strerror(errnum) << std::endl;
             exit(EXIT_FAILURE);
         }
         return sent;
     }
 
-    int Client::Recv(void *buf, size_t n, int flags)
+    Packet* Client::Recv()
     {
-        int recvd = recv(m_socket, buf, n, flags);
+        Reader reader = Reader(SERVER_RECV_BUFFER_SIZE);
+        auto buf = reader.NewBuffer();
+
+        int recvd = recv(m_socket, buf, SERVER_RECV_BUFFER_SIZE, 0);
         if (recvd < 0)
         {
             int errnum = errno;
-            std::cerr << "ERROR: Failed to receive " << n << " bytes: "
+            std::cerr << "ERROR: Failed to receive " << SERVER_RECV_BUFFER_SIZE << " bytes: "
                 << strerror(errnum) << std::endl;
             exit(EXIT_FAILURE);
         }
-        return recvd;
+
+        reader.ReadBuffer(buf, recvd);
+        reader.FreeBuffer(buf);
+
+        return reader.ReadPacket();
     }
 
-    void Client::Close()
+    void Client::Disconnect(int how)
     {
         close(m_socket);
-    }
-
-    void Client::Shutdown(int how)
-    {
         shutdown(m_socket, how);
     }
 }
