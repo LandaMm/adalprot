@@ -1,7 +1,8 @@
 
 #include"hsp/client.h"
+#include "hsp/address.h"
+#include "hsp/header.h"
 #include"hsp/packet.h"
-#include"hsp/reader.h"
 #include<cassert>
 #include<cerrno>
 #include <cstdint>
@@ -18,31 +19,16 @@ using namespace HSP;
 
 int main(int argc, char** argv)
 {
-    addrinfo hints, *res;
-
-    memset(&hints, 0, sizeof(hints));
-
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
-
-    if (getaddrinfo("localhost", "4445", &hints, &res) < 0)
-    {
-        int errnum = errno;
-        std::cerr << "ERROR: Failed to resolve host address: "
-            << strerror(errnum) << std::endl;
-        return 1;
-    }
-
-    Client client = Client(res);
-    client.Connect();
+    Client client = Client();
+    client.Connect(Address::FromString("127.0.0.1:3000", AF_INET));
 
     Packet *packet = new Packet();
     packet->version = 1;
     packet->flags = 0;
-    packet->headers.insert(std::make_pair("Content-Encoding", "utf-8"));
+    packet->headers.insert(std::make_pair(H_DATA_FORMAT, DF_TEXT));
     packet->headers.insert(std::make_pair("Filename", argv[1]));
-    packet->headers.insert(std::make_pair("Route", "/file-upload"));
+    packet->headers.insert(std::make_pair(H_ROUTE, "/file-upload"));
+
     std::ifstream file(argv[1], std::ios::in | std::ios::binary);
     if (!file)
     {
@@ -54,40 +40,28 @@ int main(int argc, char** argv)
     std::streamsize bytesRead = file.gcount();
     std::cout << "DEBUG: Read " << bytesRead << " characters from LICENSE\n";
     file.close();
+
     packet->payload.insert(packet->payload.end(), data, data + bytesRead);
 
-    std::vector<uint8_t> buffer;
-    packet->Serialize(buffer);
-    int bytes_sent = client.Send(buffer.data(), buffer.size());
+    int bytes_sent = client.Send(packet);
     std::cout << "INFO: Sent " << bytes_sent << " bytes" << std::endl;
 
-    HSP::Reader reader = HSP::Reader(1024);
+    auto response = client.Recv();
 
-    auto buf = reader.NewBuffer();
-    int bytes_read = client.Recv(buf, 1024);
-
-    std::cout << "INFO: Received " << bytes_read << " bytes" << std::endl;
-
-    if (bytes_read > 0)
+    if (response)
     {
-        reader.ReadBuffer(buf, bytes_read);
-        reader.FreeBuffer(buf);
-
-        auto packet = reader.ReadPacket();
-
         std::cout << "INFO: New Packet:" << std::endl;
-        std::cout << "Version:\t" << (int)packet->version << std::endl;
-        std::cout << "Flags:  \t" << (int)packet->version << std::endl;
+        std::cout << "Version:\t" << (int)response->version << std::endl;
+        std::cout << "Flags:  \t" << (int)response->version << std::endl;
         std::cout << "Headers:" << std::endl;
-        for(auto &[k, v] : packet->headers)
+        for(auto &[k, v] : response->headers)
         {
             std::cout << "\t" << '"' << k << '"' << ": " << '"' << v << '"' << std::endl;
         }
-        std::cout << "Payload Length:\t" << packet->payload.size() << std::endl;
+        std::cout << "Payload Length:\t" << response->payload.size() << std::endl;
     }
 
-    client.Close();
-    client.Shutdown(SHUT_RDWR);
+    client.Disconnect(SHUT_RDWR);
 
     return 0;
 }
